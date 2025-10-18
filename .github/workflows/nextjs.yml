@@ -3,7 +3,73 @@
 This repository automates GitHub releases using GitHub Actions.
 
 ## ⚙️ Setup
+import React, { useState } from "react";
+import { ethers } from "ethers";
 
+export default function SignIn() {
+  const [address, setAddress] = useState(null);
+  const [token, setToken] = useState(null);
+  const [status, setStatus] = useState("");
+
+  async function connectAndSign() {
+    try {
+      if (!window.ethereum) {
+        setStatus("MetaMask not detected");
+        return;
+      }
+
+      const provider = new ethers.BrowserProvider(window.ethereum);
+      await provider.send("eth_requestAccounts", []);
+      const signer = await provider.getSigner();
+      const addr = await signer.getAddress();
+      setAddress(addr);
+
+      // fetch nonce
+      const nonceRes = await fetch(`${import.meta.env.VITE_SERVER_URL || "http://localhost:3001"}/api/nonce?address=${addr}`);
+      const { nonce } = await nonceRes.json();
+
+      const message = `Sign in to SIWE Demo\nNonce: ${nonce}`;
+      const signature = await signer.signMessage(message);
+
+      // verify
+      const verifyRes = await fetch(`${import.meta.env.VITE_SERVER_URL || "http://localhost:3001"}/api/verify`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ address: addr, signature, message }),
+      });
+      const data = await verifyRes.json();
+      if (data.success) {
+        setToken(data.token);
+        setStatus("Signed in — token received.");
+      } else {
+        setStatus("Verification failed: " + (data.error || "unknown"));
+      }
+    } catch (err) {
+      setStatus("Error: " + err.message);
+    }
+  }
+
+  async function whoami() {
+    if (!token) return setStatus("no token");
+    const res = await fetch(`${import.meta.env.VITE_SERVER_URL || "http://localhost:3001"}/api/me`, {
+      headers: { Authorization: `Bearer ${token}` },
+    });
+    const j = await res.json();
+    setStatus(JSON.stringify(j));
+  }
+
+  return (
+    <div>
+      <button onClick={connectAndSign}>Sign in with MetaMask</button>
+      <div style={{ marginTop: 12 }}>Address: {address}</div>
+      <div style={{ marginTop: 12 }}>Token: {token ? token.slice(0, 40) + "..." : "(none)"}</div>
+      <div style={{ marginTop: 12 }}>
+        <button onClick={whoami} disabled={!token}>Who am I?</button>
+      </div>
+      <div style={{ marginTop: 12, whiteSpace: "pre-wrap" }}>{status}</div>
+    </div>
+  );
+}
 1. Create a fine-grained personal access token:
    - https://github.com/settings/tokens
    - Give it "Contents: Read and Write" access.

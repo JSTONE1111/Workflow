@@ -1,4 +1,22 @@
-# Sample workflow for building and deploying a Next.js site to GitHub Pages
+# 🤖 Release Bot
+
+This repository automates GitHub releases using GitHub Actions.
+
+## ⚙️ Setup
+
+1. Create a fine-grained personal access token:
+   - https://github.com/settings/tokens
+   - Give it "Contents: Read and Write" access.
+   - Select this repository only.
+
+2. Add it to your repo:
+   - Go to Settings → Secrets → Actions
+   - Add a new secret: `GH_RELEASE_TOKEN`
+
+3. Push code to `main` or tag manually:
+   ```bash
+   git tag v1.0.0
+   git push origin v1.0.0# Sample workflow for building and deploying a Next.js site to GitHub Pages
 #
 # To get started with Next.js see: https://nextjs.org/docs/getting-started
 #
